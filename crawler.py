@@ -97,36 +97,23 @@ params = {
     "wts": int(time.time()),
 }
 
-results = []
 params["w_rid"] =generate_random_string(32)
 def get_item_info(item: dict) -> dict:
     match item["type"]:
         case "DYNAMIC_TYPE_FORWARD":
-            try:
-                tmp = {
+            tmp = {
                     "type": "动态转发",
                     "content": item["modules"]["module_dynamic"]["desc"]["text"],
                     "forward_user": item["orig"]["modules"]["module_author"]["name"],
-                    "forward_url": item["orig"]["modules"]["module_dynamic"]["major"]["archive"]["jump_url"],
                     "pub_ts":item["orig"]["modules"]["module_author"]["pub_ts"],
                 }
+            try:
+                tmp["forward_url"]= item["orig"]["modules"]["module_dynamic"]["major"]["archive"]["jump_url"]
             except KeyError:
                 try:
-                    tmp = {
-                        "type": "动态转发",
-                        "content": item["modules"]["module_dynamic"]["desc"]["text"],
-                        "forward_user": item["orig"]["modules"]["module_author"]["name"],
-                        "forward_url": item["orig"]["modules"]["module_dynamic"]["major"]["live"]["jump_url"],
-                        "pub_ts":item["modules"]["module_author"]["pub_ts"],
-                    }
+                    tmp["forward_url"]=item["orig"]["modules"]["module_dynamic"]["major"]["live"]["jump_url"]
                 except KeyError:
-                    tmp = {
-                        "type": "动态转发",
-                        "content": item["modules"]["module_dynamic"]["desc"]["text"],
-                        "forward_user": item["orig"]["modules"]["module_author"]["name"],
-                        "forward_url": item["orig"]["modules"]["module_dynamic"]["major"]["opus"]["jump_url"],
-                        "pub_ts":item["modules"]["module_author"]["pub_ts"],
-                    }
+                    tmp["forward_url"]=item["orig"]["modules"]["module_dynamic"]["major"]["opus"]["jump_url"]
         case "DYNAMIC_TYPE_AV":
             tmp = {
                 "type": "投稿视频",
@@ -205,6 +192,5 @@ for uid in uids:
         print((str(uid), res["type"], res["content"], res["title"], res["forward_user"], res["forward_url"], str(res["pub_ts"])))
         cursor.execute(sql, (str(uid), res["type"], res["content"], res["title"], res["forward_user"], res["forward_url"], res["pub_ts"]))
     db.commit()
-
 cursor.close()
 db.close()
