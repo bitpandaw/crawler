@@ -12,9 +12,9 @@ else:
     uids_json = open(uids_path, "r", encoding="utf-8")
     uids = json.loads(uids_json)
 db = mysql.connector.connect (host="localhost",
-    user="root",
-    password="123456789",
-    database="crawlerdb"
+    user="",
+    password="",
+    database=""
     )
 create_table = """
 CREATE TABLE IF NOT EXISTS `dyinfo` (
