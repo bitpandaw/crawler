@@ -6,7 +6,7 @@ import mysql.connector
 import csv
 import random
 if __name__ == "__main__":
-    uids = [670762178,23191782]
+    uids = [23191782,19147010,483417795]
 else:
     uids_path = "uids.json"
     uids_json = open(uids_path, "r", encoding="utf-8")
@@ -14,23 +14,26 @@ else:
 db = mysql.connector.connect (host="localhost",
     user="root",
     password="152142445",
-    database="crwalerdb"
+    database="crawlerdb"
     )
+create_table = """
+CREATE TABLE IF NOT EXISTS `dyinfo` (
+    `uid` varchar(25) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+    `type` varchar(112) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+    `content` varchar(5000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+    `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+    `forward_user` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+    `forward_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+    `pub_ts` varchar(40) DEFAULT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户信息'
+
+"""
+
 cursor = db.cursor()
 chars = '0123456789' + 'ABCDE'
 def generate_random_string(length):
     return ''.join(random.choice(chars) for _ in range(length))
-create_table_query = """
-    CREATE TABLE IF NOT EXISTS dyinfo(  
-        id INT PRIMARY KEY,
-        type VARCHAR(12),
-        content VARCHAR(500),
-        title VARCHAR(30),
-        forward_user VARCHAR(20),
-        forward_url VARCHAR(40)
-    )   
-"""
-cursor.execute(create_table_query)
+cursor.execute(create_table)
 cookies = {
     "buvid3": "142D350C-4217-9F24-E2DA-E73BDF16415F66158infoc",
     "b_nut": "1721821566",
@@ -108,19 +111,28 @@ def get_item_info(item: dict) -> dict:
                     "pub_ts":item["orig"]["modules"]["module_author"]["pub_ts"],
                 }
             except KeyError:
-                tmp = {
-                    "type": "动态转发",
-                    "content": item["modules"]["module_dynamic"]["desc"]["text"],
-                    "forward_user": item["orig"]["modules"]["module_author"]["name"],
-                    "forward_url": item["orig"]["modules"]["module_dynamic"]["major"]["live"]["jump_url"],
-                    "pub_ts":item["orig"]["modules"]["module_author"]["pub_ts"],
-                }
+                try:
+                    tmp = {
+                        "type": "动态转发",
+                        "content": item["modules"]["module_dynamic"]["desc"]["text"],
+                        "forward_user": item["orig"]["modules"]["module_author"]["name"],
+                        "forward_url": item["orig"]["modules"]["module_dynamic"]["major"]["live"]["jump_url"],
+                        "pub_ts":item["modules"]["module_author"]["pub_ts"],
+                    }
+                except KeyError:
+                    tmp = {
+                        "type": "动态转发",
+                        "content": item["modules"]["module_dynamic"]["desc"]["text"],
+                        "forward_user": item["orig"]["modules"]["module_author"]["name"],
+                        "forward_url": item["orig"]["modules"]["module_dynamic"]["major"]["opus"]["jump_url"],
+                        "pub_ts":item["modules"]["module_author"]["pub_ts"],
+                    }
         case "DYNAMIC_TYPE_AV":
             tmp = {
                 "type": "投稿视频",
                 "content": item["modules"]["module_dynamic"]["major"]["archive"]["jump_url"],
                 "title": item["modules"]["module_dynamic"]["major"]["archive"]["title"],
-                "pub_ts":item["orig"]["modules"]["module_author"]["pub_ts"],
+                "pub_ts":item["modules"]["module_author"]["pub_ts"],
             }
         case "DYNAMIC_TYPE_WORD":
             tmp = {
@@ -129,7 +141,7 @@ def get_item_info(item: dict) -> dict:
                     "summary"
                 ]["text"],
                 "title": item["modules"]["module_dynamic"]["major"]["opus"]["title"],
-                "pub_ts":item["orig"]["modules"]["module_author"]["pub_ts"],
+                "pub_ts":item["modules"]["module_author"]["pub_ts"],
             }
         case "DYNAMIC_TYPE_DRAW":
             tmp = {
@@ -144,14 +156,14 @@ def get_item_info(item: dict) -> dict:
                 "text": item["modules"]["module_dynamic"]["major"]["opus"]["summary"][
                     "text"
                 ],
-                "pub_ts":item["orig"]["modules"]["module_author"]["pub_ts"],
+                "pub_ts":item["modules"]["module_author"]["pub_ts"],
             }
         case "DYNAMIC_TYPE_LIVE_RCMD":
             tmp ={
                 "type": "直播间开播",
                 "content": re.search((item["modules"]["module_dynamic"]["major"]["live_rcmd"]["content"]),r'"link":"//(.*)",'),
                 "title": re.search((item["modules"]["module_dynamic"]["major"]["live_rcmd"]["content"]),r'"title":"//(.*)",'),
-                "pub_ts":item["orig"]["modules"]["module_author"]["pub_ts"],
+                "pub_ts":item["modules"]["module_author"]["pub_ts"],
             }
         case _:
             print(item["type"])
@@ -159,17 +171,19 @@ def get_item_info(item: dict) -> dict:
             
     return tmp
 def get_item(item_info):
-    type_value = item_info.get("type", "UNKNOWN")
-    content_value = item_info.get("content", "UNKNOWN")
-    title_value = item_info.get("title", "UNKNOWN")
-    forward_user_value = item_info.get("forward_user", "UNKNOWN")
-    forward_url_value = item_info.get("forward_url", "UNKNOWN")
+    type_value = item_info.get("type", "NULL")
+    content_value = item_info.get("content", "NULL")
+    title_value = item_info.get("title", "NULL")
+    forward_user_value = item_info.get("forward_user", "NULL")
+    forward_url_value = item_info.get("forward_url", "NULL")
+    pub_ts_value = item_info.get("pub_ts", "NULL")
     return {
-        "type": type_value,
-        "content": content_value,
-        "title": title_value,
-        "forward_user": forward_user_value,
-        "forward_url": forward_url_value
+        "type": str(type_value),
+        "content": str(content_value),
+        "title": str(title_value),
+        "forward_user": str(forward_user_value),
+        "forward_url": str(forward_url_value),
+        "pub_ts":str(pub_ts_value),
     }
 for uid in uids:
     params["host_mid"] = str(uid)
@@ -185,10 +199,12 @@ for uid in uids:
     for item in resp_json["data"]["items"]:
         res = get_item(get_item_info(item))
         sql = """
-        INSERT INTO items (type, content, title, forward_user, forward_url)
-        VALUES (%s, %s, %s, %s, %s)
-        """
-        cursor.execute(sql,res["type"],res["content"],res["title"],res["forward_user"],res["forward_url"])
+            INSERT INTO dyinfo (uid, type, content, title, forward_user, forward_url, pub_ts)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+        print((str(uid), res["type"], res["content"], res["title"], res["forward_user"], res["forward_url"], str(res["pub_ts"])))
+        cursor.execute(sql, (str(uid), res["type"], res["content"], res["title"], res["forward_user"], res["forward_url"], res["pub_ts"]))
     db.commit()
+
 cursor.close()
 db.close()
