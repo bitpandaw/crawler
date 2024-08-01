@@ -13,7 +13,7 @@ else:
     uids = json.loads(uids_json)
 db = mysql.connector.connect (host="localhost",
     user="root",
-    password="152142445",
+    password="123456789",
     database="crawlerdb"
     )
 create_table = """
