@@ -2,8 +2,6 @@ import requests
 import json
 import time
 import re
-import mysql.connector
-import csv
 import random
 if __name__ == "__main__":
     uids = [23191782,19147010,483417795]
@@ -11,11 +9,6 @@ else:
     uids_path = "uids.json"
     uids_json = open(uids_path, "r", encoding="utf-8")
     uids = json.loads(uids_json)
-db = mysql.connector.connect (host="localhost",
-    user="",
-    password="",
-    database=""
-    )
 create_table = """
 CREATE TABLE IF NOT EXISTS `dyinfo` (
     `uid` varchar(25) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
@@ -28,12 +21,9 @@ CREATE TABLE IF NOT EXISTS `dyinfo` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户信息'
 
 """
-
-cursor = db.cursor()
 chars = '0123456789' + 'ABCDE'
 def generate_random_string(length):
     return ''.join(random.choice(chars) for _ in range(length))
-cursor.execute(create_table)
 cookies = {
     "buvid3": "142D350C-4217-9F24-E2DA-E73BDF16415F66158infoc",
     "b_nut": "1721821566",
@@ -157,40 +147,17 @@ def get_item_info(item: dict) -> dict:
             tmp = {"type": "UNKONWN", "content": item["type"]}
             
     return tmp
-def get_item(item_info):
-    type_value = item_info.get("type", "NULL")
-    content_value = item_info.get("content", "NULL")
-    title_value = item_info.get("title", "NULL")
-    forward_user_value = item_info.get("forward_user", "NULL")
-    forward_url_value = item_info.get("forward_url", "NULL")
-    pub_ts_value = item_info.get("pub_ts", "NULL")
-    return {
-        "type": str(type_value),
-        "content": str(content_value),
-        "title": str(title_value),
-        "forward_user": str(forward_user_value),
-        "forward_url": str(forward_url_value),
-        "pub_ts":str(pub_ts_value),
-    }
+results = []
 for uid in uids:
     params["host_mid"] = str(uid)
-    result = [str(uid)]
     response = requests.get(
         "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space",
         params=params,
         cookies=cookies,
         headers=headers,
     )
-    
     resp_json = response.json()
     for item in resp_json["data"]["items"]:
-        res = get_item(get_item_info(item))
-        sql = """
-            INSERT INTO dyinfo (uid, type, content, title, forward_user, forward_url, pub_ts)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """
-        print((str(uid), res["type"], res["content"], res["title"], res["forward_user"], res["forward_url"], str(res["pub_ts"])))
-        cursor.execute(sql, (str(uid), res["type"], res["content"], res["title"], res["forward_user"], res["forward_url"], res["pub_ts"]))
-    db.commit()
-cursor.close()
-db.close()
+        res = get_item_info(item)
+        results.append(res)
+print(results)
